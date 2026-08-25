@@ -17,6 +17,16 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const root = mkdtempSync(join(tmpdir(), 'claimfold-storage-'))
 
+/**
+ * A directory that is genuinely NOT the storage root, for the symlink test.
+ *
+ * That test used to point its link at a file inside `root` and call it
+ * "outside-secret", so containment correctly allowed the read and the
+ * assertion was simply wrong. It never showed up because the only platform
+ * that can create the symlink is CI, and CI had never run.
+ */
+const outside = mkdtempSync(join(tmpdir(), 'claimfold-outside-'))
+
 type StorageModule = typeof import('../index.ts')
 let storage: StorageModule
 
@@ -27,6 +37,7 @@ beforeAll(async () => {
 
 afterAll(() => {
   rmSync(root, { recursive: true, force: true })
+  rmSync(outside, { recursive: true, force: true })
   delete process.env['STORAGE_DIR']
 })
 
@@ -119,7 +130,7 @@ describe('readSlideImage', () => {
       Exploiting it needs write access to the storage root, so this is defence
       in depth — but the read path is the wrong place to rely on that.
     */
-    const secret = join(root, 'outside-secret.txt')
+    const secret = join(outside, 'secret.txt')
     writeFileSync(secret, 'ENCRYPTION_KEY=hunter2')
 
     const shard = join(root, 'org1', 'ff')
