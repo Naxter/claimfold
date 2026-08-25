@@ -65,7 +65,11 @@ export async function readCache<T>(key: string, ttl?: number): Promise<T | undef
     const entry = JSON.parse(raw) as Entry<T>
     const effective = ttl ?? entry.ttl
 
-    if (Date.now() - entry.storedAt > effective) {
+    // `>=`, not `>`. A zero TTL means "already expired", but a write and a
+    // read can land in the same millisecond on a fast machine, and `0 > 0` is
+    // false — so the entry came back alive. Windows' coarser clock hid this;
+    // the Linux runner did not.
+    if (Date.now() - entry.storedAt >= effective) {
       await unlink(file).catch(() => undefined)
       return undefined
     }
