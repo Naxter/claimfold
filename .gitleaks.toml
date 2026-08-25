@@ -1,0 +1,21 @@
+# Secret-scan configuration.
+#
+# The default ruleset is kept in full and narrowed in exactly one place: the
+# test fixtures that exist to prove secrets get redacted. Those fixtures are
+# deliberately shaped like real credentials, because a redaction test using an
+# obviously-not-a-token string proves nothing, and gitleaks scores them on
+# entropy rather than provenance.
+#
+# Scoped to individual files rather than to a directory glob, so a real
+# credential pasted into some other test still fails the scan.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic credentials in tests that assert redaction"
+paths = [
+  '''packages/crypto/src/__tests__/crypto\.test\.ts''',
+  '''packages/ig/src/__tests__/oauth\.test\.ts''',
+  '''apps/worker/src/__tests__/insights\.test\.ts''',
+]
