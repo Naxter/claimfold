@@ -30,6 +30,12 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: better-auth
         update-types: [version-update:semver-major]
+      # @types/node tracks the runtime, not the newest release. Both images run
+      # node:22 and engines says >=22, so types from a later major would let
+      # tsc accept APIs that are not there at runtime. CI would stay green
+      # until the first call to one of them. Bump this with the base image.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
