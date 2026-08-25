@@ -33,6 +33,15 @@ RUN npm ci
 FROM base AS build
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 COPY --from=deps /app/node_modules ./node_modules
+
+# npm does not hoist everything. A few of the web app's dependencies conflict
+# with versions elsewhere in the workspace and end up nested in
+# apps/web/node_modules instead of at the root, and .dockerignore keeps every
+# node_modules out of the build context, so copying only the root left them
+# missing and `next build` could not resolve better-auth. Local builds passed
+# because the working tree already had them.
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+
 COPY . .
 
 # Fonts are required: without them previews fall back to system faces and stop
