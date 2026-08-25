@@ -30,6 +30,16 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: better-auth
         update-types: [version-update:semver-major]
+      # zod 4 is a migration, not a bump. The pipeline authors every schema
+      # once in zod and converts it to JSON Schema for structured output via
+      # zod-to-json-schema, which is zod 3 only; zod 4 replaces it with a
+      # built-in z.toJSONSchema(). Moving means rewriting that bridge and
+      # re-checking the pass that strips keywords the provider APIs reject,
+      # and getting that wrong is a 400 at generation time rather than a
+      # failing test. better-auth also resolves its own zod, so the tree
+      # already holds more than one copy. Do it deliberately or not at all.
+      - dependency-name: zod
+        update-types: [version-update:semver-major]
       # TypeScript 7 is the native port, and typescript-eslint refuses to load
       # against it: "typescript-eslint does not support TS 7.0". The lint gate
       # is the whole reason that package is here, so the compiler cannot move
