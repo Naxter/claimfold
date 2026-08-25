@@ -6,7 +6,7 @@
 # makes it the large image — which is the reason web and worker are separate
 # rather than one container running both.
 
-FROM node:22-bookworm-slim AS base
+FROM node:25-bookworm-slim AS base
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 
