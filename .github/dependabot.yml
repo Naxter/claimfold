@@ -36,12 +36,27 @@ updates:
     schedule:
       interval: monthly
 
+  # Both images run Node. Dependabot offers whatever major is newest, which is
+  # how it proposed 25 while 22 and 24 are the LTS lines and 25 is not one.
+  # Odd-numbered Node majors never become LTS, so they carry roughly six months
+  # of support and no long-term security backports, which is the wrong trade
+  # for software other people self-host.
+  #
+  # Node majors therefore move by hand, between LTS lines. 22 "Jod" is
+  # supported to April 2027; revisit in early 2027, or sooner to pick up 24
+  # "Krypton", checking sharp and Playwright first.
   - package-ecosystem: docker
     directory: /apps/web
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: docker
     directory: /apps/worker
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
