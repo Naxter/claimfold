@@ -1,0 +1,1 @@
+ALTER TABLE "posts" ADD COLUMN "consulted_sources" jsonb DEFAULT '[]'::jsonb NOT NULL;

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "//": "Root config used by the dev toolchain (tsx, vitest, editors). Per-package tsconfigs exist for `tsc --build`, but tsx and vitest resolve a SINGLE config from the working directory — and npm scripts always run from here. Keeping `jsx` and a repo-wide `include` in this file is what stops JSX in packages/templates from being transpiled with the classic runtime when a script in another package imports it.",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "apps/**/*.ts", "apps/**/*.tsx", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "**/dist", "**/.next"]
+}

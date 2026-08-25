@@ -1,0 +1,336 @@
+/* ============================================================================
+   TOKENS — the only file you need to edit to change how the dashboard looks.
+   ============================================================================
+
+   Everything visual traces back to a custom property declared here. No
+   component contains a hex value, a pixel size or a duration. That is the
+   point: re-theming this product is editing this file, not auditing forty
+   components for magic numbers.
+
+   Three layers, and the direction of dependency never reverses:
+
+     1. RAMP      — one hue, eleven perceptually even lightness steps.
+     2. SEMANTIC  — what a colour is FOR (--bg, --fg-muted, --rule).
+     3. COMPONENT — reads only from layer 2. Never from layer 1, never raw.
+
+   Authored in OKLCH because it is perceptually uniform: step 400 to 500 looks
+   like the same size of change as 700 to 800. Hand-picked hex ramps never do,
+   which is why they read as slightly mixed even when each colour is fine.
+
+   ── This is a DASHBOARD, so product-mode rules apply ──────────────────────
+   Dense, not airy. One typeface, not two. No display face and no signature
+   element — a tool that draws attention to itself is a tool that gets in the
+   way. Personality here comes from alignment and restraint.
+   ========================================================================== */
+
+:root {
+  /* ── 1. THE RAMP ────────────────────────────────────────────────────────
+     Change --h to re-tint every neutral in the product at once.
+
+     Chroma stays very low. Tinted neutrals read considered; pure #888 reads
+     unconsidered. 0.012 is enough to feel deliberate and not enough to look
+     coloured. Raise toward 0.03 for a warmer, more obviously tinted product. */
+  --h: 268; /* cool neutral, sits under the indigo accent */
+  /* 0.008, not higher. At 0.012 the light canvas read visibly lavender rather
+     than as a neutral with a hint of the accent's hue in it — checked on
+     screen, not assumed. Raise it if you want the tint to be noticeable. */
+  --c: 0.008;
+
+  --ink-50: oklch(98.2% var(--c) var(--h));
+  --ink-100: oklch(96% var(--c) var(--h));
+  --ink-150: oklch(93.5% var(--c) var(--h));
+  --ink-200: oklch(89% var(--c) var(--h));
+  --ink-300: oklch(80% var(--c) var(--h));
+  --ink-400: oklch(68% var(--c) var(--h));
+  /* 55%, not 56%: `--fg-subtle` maps here, and at 56% metadata on the light
+     canvas measured 4.42:1 — just under the 4.5 floor. One point of lightness
+     buys compliance and costs nothing visible. */
+  --ink-500: oklch(55% var(--c) var(--h));
+  --ink-600: oklch(46% var(--c) var(--h));
+  --ink-700: oklch(36% var(--c) var(--h));
+  --ink-800: oklch(27% var(--c) var(--h));
+  --ink-850: oklch(22% var(--c) var(--h));
+  --ink-900: oklch(17% var(--c) var(--h));
+  --ink-950: oklch(12.5% var(--c) var(--h));
+
+  /* ── 2. THE ACCENT ──────────────────────────────────────────────────────
+     Exactly one. It marks the primary action and the current selection, and
+     nothing else. If more than a few percent of the screen is accent-coloured,
+     something has been over-decorated.
+
+     Deep indigo, chosen for one concrete reason: the chart palette below is
+     the Wong colourblind-safe set, which already owns blue, orange, green,
+     purple, vermillion and yellow. Brand colour and data colour must not come
+     from the same set, or a reader cannot tell "this is a button" from "this
+     is the series for revenue". Indigo sits clear of all eight. */
+  --accent: oklch(48% 0.14 275);
+  --accent-hi: oklch(54% 0.15 275); /* hover */
+  --accent-lo: oklch(42% 0.13 275); /* active */
+  --accent-weak: oklch(95% 0.03 275); /* tint fill, selected rows */
+  --accent-fg: oklch(99% 0.005 275); /* text ON accent */
+
+  /* ── 3. SEMANTIC ALIASES ────────────────────────────────────────────────
+     The only colour names a component is allowed to use. */
+  /* The canvas sits just off white and panels are pure white, so a panel
+     reads as raised without needing a shadow to say so. */
+  --bg: var(--ink-50); /* app canvas */
+  --bg-raised: oklch(100% 0 0); /* panels, cards, sticky headers */
+  --bg-sunken: var(--ink-150); /* wells, inset areas */
+  --bg-hover: var(--ink-100);
+  --bg-selected: var(--accent-weak);
+
+  --fg: var(--ink-950); /* primary text */
+  --fg-muted: var(--ink-600); /* secondary text, labels */
+  --fg-subtle: var(--ink-500); /* metadata, placeholders */
+  --fg-on-accent: var(--accent-fg);
+
+  /* Two kinds of line, and the difference is a rule not a preference.
+     `--rule` separates things that are already identifiable — table rows,
+     panel edges — so it can be as quiet as it likes. `--rule-strong` is what
+     makes a control *be* a control: the outline of an input, the edge of a
+     ghost button. WCAG asks 3:1 for that, and the light theme measured 1.87:1
+     when both came off the same ramp step. */
+  --rule: var(--ink-200); /* hairline separators */
+  --rule-strong: oklch(63% var(--c) var(--h)); /* control boundaries — 3:1 */
+  --focus: var(--accent);
+
+  /* Status. Never the only signal — every use is paired with a word or a
+     mark, because roughly one man in twelve cannot separate red from green. */
+  --status-ok: oklch(52% 0.13 150);
+  /* 53%, not 62%. Yellow-orange is intrinsically light, so a warning badge at
+     62% on its own tint measured 3.18:1 — the one status colour that fails
+     quietly, because it still looks fine to anyone who is not squinting. */
+  --status-warn: oklch(53% 0.13 75);
+  --status-err: oklch(53% 0.19 25);
+  --status-idle: var(--ink-400);
+
+  --status-ok-weak: oklch(95% 0.04 150);
+  --status-warn-weak: oklch(95% 0.05 75);
+  --status-err-weak: oklch(95% 0.04 25);
+  --status-idle-weak: var(--ink-150);
+
+  /* ── 4. DATA PALETTE ────────────────────────────────────────────────────
+     Wong's set: the standard categorical palette that stays distinguishable
+     under all three common colour vision deficiencies. Deliberately separate
+     from the accent above. Cap any chart at five to seven series and group
+     the remainder as "Other" — beyond that no palette stays coherent. */
+  --viz-1: #0072b2; /* blue */
+  --viz-2: #e69f00; /* orange */
+  --viz-3: #009e73; /* bluish green */
+  --viz-4: #cc79a7; /* reddish purple */
+  --viz-5: #d55e00; /* vermillion */
+  --viz-6: #56b4e9; /* sky blue */
+  --viz-7: #f0e442; /* yellow */
+
+  /* ── 5. TYPE ────────────────────────────────────────────────────────────
+     One family. Product interfaces are read at 13–14px a thousand times, and
+     a characterful face at that size is a legibility tax paid on every glance.
+     Personality lives in spacing and alignment instead.
+
+     The stack starts with the OS UI face, which is already tuned for exactly
+     this and costs no download. Swap --font-ui to change the whole product. */
+  --font-ui:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', 'Cascadia Code', 'Source Code Pro', monospace;
+
+  /* A fixed scale, not a fluid one. Fluid type is for reading pages; in a tool
+     a 13px label must be 13px at every window width or scanning breaks. */
+  --text-xs: 0.6875rem; /* 11px — badges, metadata */
+  --text-sm: 0.8125rem; /* 13px — table cells, labels */
+  --text-md: 0.875rem; /* 14px — DEFAULT */
+  --text-lg: 1rem; /* 16px — section titles, mobile inputs */
+  --text-xl: 1.25rem; /* 20px — page title */
+  --text-metric: 1.75rem; /* big numbers only */
+
+  --lh-ui: 1.45;
+  --lh-tight: 1.2;
+  --lh-prose: 1.6;
+
+  --track-caps: 0.06em; /* all-caps always needs positive tracking */
+
+  /* ── 6. SPACE ───────────────────────────────────────────────────────────
+     Compressed against the marketing scale. A dashboard user wants rows on
+     screen, not breathing room; every 16px of decorative padding is a row
+     they have to scroll for. */
+  --sp-1: 2px;
+  --sp-2: 4px;
+  --sp-3: 6px;
+  --sp-4: 8px;
+  --sp-5: 12px;
+  --sp-6: 16px;
+  --sp-7: 24px;
+  --sp-8: 32px;
+  --sp-9: 48px;
+
+  --pad-panel: var(--sp-6);
+  --gap-grid: var(--sp-5);
+  --prose: 68ch; /* hard cap on any block of running text */
+
+  /* ── 7. SHELL ───────────────────────────────────────────────────────────
+     Sizes are the settled convention rather than an invention. A sidebar at
+     an unusual width buys nothing and costs recognition. */
+  /* Two names for a reason. `--sidebar-w` is the rail's width *in the grid*
+     and shrinks when the rail is collapsed; `--sidebar-w-expanded` is its
+     natural width and never changes. The mobile drawer needs the second one:
+     it slides over the content rather than sharing a row with it, so a
+     collapse preference carried over from a desktop session would otherwise
+     hand a phone a 52px drawer with the labels hidden. */
+  --sidebar-w-expanded: 244px;
+  --sidebar-w: var(--sidebar-w-expanded);
+  --sidebar-w-collapsed: 52px;
+  --topbar-h: 52px;
+
+  /* ── 8. SHAPE ───────────────────────────────────────────────────────────
+     One philosophy, held everywhere: soft controls inside sharp containers.
+     Mixed radii is the most reliable tell of a page nobody art-directed.
+
+     Rules are preferred to shadows. A rule is editorial; a shadow is UI-kit,
+     and a dashboard full of floating cards reads as a template. Shadow is
+     reserved for things that genuinely float — menus, dialogs. */
+  --radius-1: 3px; /* inputs, buttons, badges */
+  --radius-2: 6px; /* panels */
+  --radius-full: 999px;
+
+  --shadow-pop:
+    0 1px 2px oklch(0% 0 0 / 0.06), 0 4px 12px oklch(0% 0 0 / 0.08),
+    0 12px 28px oklch(0% 0 0 / 0.06);
+
+  /* ── 9. MOTION ──────────────────────────────────────────────────────────
+     Two behaviours only: state feedback and layout change. No scroll reveals,
+     no staggers, no page-load choreography. Anything a person triggers fifty
+     times a day has to feel instant, and 240ms is already the ceiling. */
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* arriving */
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45); /* leaving — always faster */
+
+  /* ── 10. LAYERS ─────────────────────────────────────────────────────────
+     Named, because a sticky table header fighting a dropdown is the classic
+     z-index bug and it is always caused by scattered magic numbers. */
+  --z-base: 0;
+  --z-sticky-col: 5;
+  --z-sticky-header: 10;
+  --z-sticky-corner: 15;
+  --z-shell: 100;
+  --z-overlay: 500;
+  --z-modal: 600;
+  --z-toast: 700;
+}
+
+/* ── DENSITY ───────────────────────────────────────────────────────────────
+   The row height a person picks and keeps. Reviewing three hundred records is
+   nine screens compact against twenty comfortable, so this is a real
+   productivity setting, not a preference toggle — and it persists.
+
+   Note what does NOT change: the font size. Shrinking type to gain density is
+   the classic mistake; it buys rows and loses the ability to read them. */
+:root,
+:root[data-density='comfortable'] {
+  --row-h: 44px;
+  --cell-x: var(--sp-5);
+  --control-h: 32px;
+}
+:root[data-density='compact'] {
+  --row-h: 32px;
+  --cell-x: var(--sp-4);
+  --control-h: 28px;
+}
+:root[data-density='spacious'] {
+  --row-h: 52px;
+  --cell-x: var(--sp-6);
+  --control-h: 36px;
+}
+
+/* Collapsing the sidebar is a width change on one custom property, so the
+   grid, the labels and the scroll container all follow from a single value
+   rather than from three coordinated class toggles. */
+:root[data-sidebar='collapsed'] {
+  --sidebar-w: var(--sidebar-w-collapsed);
+}
+
+/* ── DARK THEME ────────────────────────────────────────────────────────────
+   A first-class theme, not an inversion. Two things are re-tuned rather than
+   flipped:
+
+   - The accent lightens. Indigo at 48% is correct on white and nearly
+     invisible on near-black, so the dark theme raises it to 68%. An accent
+     that only works in one theme is the usual reason dark mode feels broken.
+   - Status tints lose most of their lightness but keep their hue, so a warning
+     still reads as a warning without glowing.
+
+   The canvas is --ink-950 rather than pure black: full black with light text
+   produces halation, and long review sessions are exactly when that hurts. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: var(--ink-950);
+    --bg-raised: var(--ink-900);
+    --bg-sunken: oklch(9% var(--c) var(--h));
+    --bg-hover: var(--ink-850);
+    --bg-selected: oklch(30% 0.07 275);
+
+    --fg: var(--ink-50);
+    --fg-muted: var(--ink-300);
+    --fg-subtle: var(--ink-400);
+
+    --rule: var(--ink-800);
+    /* Same 3:1 requirement, solved against the dark panel rather than white. */
+    --rule-strong: oklch(50% var(--c) var(--h));
+
+    --accent: oklch(68% 0.14 275);
+    --accent-hi: oklch(74% 0.14 275);
+    --accent-lo: oklch(62% 0.14 275);
+    --accent-weak: oklch(30% 0.07 275);
+    --accent-fg: oklch(15% 0.03 275);
+
+    --status-ok: oklch(72% 0.14 150);
+    --status-warn: oklch(78% 0.13 75);
+    --status-err: oklch(70% 0.16 25);
+
+    --status-ok-weak: oklch(28% 0.06 150);
+    --status-warn-weak: oklch(30% 0.06 75);
+    --status-err-weak: oklch(29% 0.07 25);
+    --status-idle-weak: var(--ink-850);
+
+    --shadow-pop:
+      0 1px 2px oklch(0% 0 0 / 0.4), 0 4px 16px oklch(0% 0 0 / 0.5),
+      0 12px 32px oklch(0% 0 0 / 0.4);
+  }
+}
+
+/* The explicit choice, which wins over the OS preference in both directions. */
+:root[data-theme='dark'] {
+  --bg: var(--ink-950);
+  --bg-raised: var(--ink-900);
+  --bg-sunken: oklch(9% var(--c) var(--h));
+  --bg-hover: var(--ink-850);
+  --bg-selected: oklch(30% 0.07 275);
+
+  --fg: var(--ink-50);
+  --fg-muted: var(--ink-300);
+  --fg-subtle: var(--ink-400);
+
+  --rule: var(--ink-800);
+  --rule-strong: oklch(50% var(--c) var(--h));
+
+  --accent: oklch(68% 0.14 275);
+  --accent-hi: oklch(74% 0.14 275);
+  --accent-lo: oklch(62% 0.14 275);
+  --accent-weak: oklch(30% 0.07 275);
+  --accent-fg: oklch(15% 0.03 275);
+
+  --status-ok: oklch(72% 0.14 150);
+  --status-warn: oklch(78% 0.13 75);
+  --status-err: oklch(70% 0.16 25);
+
+  --status-ok-weak: oklch(28% 0.06 150);
+  --status-warn-weak: oklch(30% 0.06 75);
+  --status-err-weak: oklch(29% 0.07 25);
+  --status-idle-weak: var(--ink-850);
+
+  --shadow-pop:
+    0 1px 2px oklch(0% 0 0 / 0.4), 0 4px 16px oklch(0% 0 0 / 0.5),
+    0 12px 32px oklch(0% 0 0 / 0.4);
+}

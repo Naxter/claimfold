@@ -1,0 +1,187 @@
+# Claimfold — the canonical install.
+#
+#   cp .env.example .env   &&   edit .env   &&   docker compose up -d
+#
+# This file is the product's distribution format: a buyer runs exactly this.
+# Keep it boring and self-contained — every extra step here becomes a support email.
+
+name: claimfold
+
+# Anchors, so web and worker cannot drift apart on the settings they share.
+x-db-url: &db-url
+  DATABASE_URL: postgres://${POSTGRES_USER:-claimfold}:${POSTGRES_PASSWORD:-claimfold}@postgres:5432/${POSTGRES_DB:-claimfold}
+
+x-llm: &llm
+  # Both providers are passed through; only the selected one needs a key.
+  # Omitting these was a real bug: .env.example defaults to openai, and the
+  # first generation failed with "OPENAI_API_KEY is not set".
+  LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+
+# Without this the default json-file driver grows until the disk is full.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-claimfold}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-claimfold}
+      POSTGRES_DB: ${POSTGRES_DB:-claimfold}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Without this, web/worker race the database on first boot and crash-loop.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-claimfold} -d ${POSTGRES_DB:-claimfold}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Not published by default — nothing outside the compose network needs it.
+    # Uncomment to inspect with a local client.
+    # ports: ["5432:5432"]
+
+  # ── Schema ─────────────────────────────────────────────────────────────────
+  # Runs to completion, then web and worker start. This step did not exist, and
+  # without it `docker compose up -d` produced a running stack with an empty
+  # database that 500s on every request — and, because the row-level-security
+  # policies are created here too (packages/db/src/rls.ts, applied from
+  # migrate.ts), a schema built by hand instead would have had no tenant
+  # isolation at all.
+  #
+  # Reuses the worker image rather than adding a third: it already carries tsx
+  # and @claimfold/db.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    restart: "no"
+    logging: *logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *db-url
+    command: ["npx", "tsx", "packages/db/src/migrate.ts"]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: [*db-url, *llm]
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required — see .env.example}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is required — see .env.example}
+      APP_URL: ${APP_URL:-http://localhost:3100}
+      # PORT is deliberately not passed through. The container always listens on
+      # 3000; `${PORT}` below is the port published on the host, and setting the
+      # variable inside would make the server bind somewhere the mapping does
+      # not reach.
+      #
+      # Set when a proxy terminates TLS in front of this container. Without it
+      # an http:// APP_URL means session cookies ship without `Secure`.
+      TRUST_PROXY: ${TRUST_PROXY:-}
+      STORAGE_DIR: /app/storage
+      PUBLIC_ASSET_URL: ${PUBLIC_ASSET_URL:-http://localhost:3100/assets}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      # Was missing, so an operator could not open registration for a second
+      # seat without editing the image.
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-false}
+      LICENSE_KEY: ${LICENSE_KEY:-}
+      # Also missing, which made the licence banner permanently report the
+      # "shipped without a public key" packaging error.
+      LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:-}
+      TRENDS_CONTACT: ${TRENDS_CONTACT:-}
+    volumes:
+      # Rendered JPEGs. Written by the worker; web only serves them, so it gets
+      # the volume read-only. The comment here used to say read-only while the
+      # mount was read-write.
+      - storage:/app/storage:ro
+    ports:
+      - "${PORT:-3100}:3000"
+    healthcheck:
+      # `restart: unless-stopped` only reacts to a process that exits. A server
+      # that is up but cannot reach Postgres restarts never and alerts nobody.
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: ${WEB_MEM_LIMIT:-1g}
+    cpus: ${WEB_CPUS:-1.0}
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    logging: *logging
+    # Chromium spawns a process tree per render. The image has tini as its
+    # entrypoint; this is the belt to that pair of braces.
+    init: true
+    # Shutdown waits for a publish already in flight rather than exiting between
+    # the Graph API call and the row that records it. Must exceed
+    # SHUTDOWN_GRACE_MS in apps/worker/src/index.ts.
+    stop_grace_period: 120s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: [*db-url, *llm]
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required — see .env.example}
+      APP_URL: ${APP_URL:-http://localhost:3100}
+      PUBLIC_ASSET_URL: ${PUBLIC_ASSET_URL:-http://localhost:3100/assets}
+      RENDER_CONCURRENCY: ${RENDER_CONCURRENCY:-2}
+      STORAGE_DIR: /app/storage
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      WORKER_TICK_SECONDS: ${WORKER_TICK_SECONDS:-30}
+      PUBLISH_LEASE_MINUTES: ${PUBLISH_LEASE_MINUTES:-20}
+      RETENTION_DAYS: ${RETENTION_DAYS:-30}
+      TRENDS_CONTACT: ${TRENDS_CONTACT:-}
+      # Read by apps/worker/src/log.ts. Was passed through here while nothing
+      # read it; the worker now emits one JSON object per line and filters on it.
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - storage:/app/storage
+    healthcheck:
+      # The worker has no HTTP surface, so it touches a file at the end of every
+      # tick instead. A hung tick is the failure this catches — the process
+      # stays up, so nothing else would.
+      test:
+        - CMD
+        - node
+        - -e
+        - "const{statSync}=require('fs');try{process.exit(Date.now()-statSync('/tmp/claimfold-worker-heartbeat').mtimeMs<300000?0:1)}catch{process.exit(1)}"
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    # Chromium is sized for a 4GB box (packages/render/src/browser.ts). Without
+    # a limit an OOM takes the whole machine rather than this container.
+    mem_limit: ${WORKER_MEM_LIMIT:-3g}
+    cpus: ${WORKER_CPUS:-2.0}
+
+volumes:
+  pgdata:
+  storage:

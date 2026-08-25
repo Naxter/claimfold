@@ -1,0 +1,57 @@
+# Docker does NOT read .gitignore. Without this file, `COPY . .` bakes the
+# working tree — including .env with live API keys and the install's master
+# ENCRYPTION_KEY — into an image layer, where `docker history` can extract it.
+#
+# This file exists before the Dockerfiles on purpose.
+
+.env
+.env.*
+!.env.example
+
+.git
+.github
+.idea
+.vscode
+.claude
+
+node_modules
+**/node_modules
+
+# Build output — rebuilt inside the image.
+.next
+**/.next
+dist
+**/dist
+*.tsbuildinfo
+
+# Local embedded Postgres cluster.
+data
+
+# Generated artefacts.
+out
+storage
+test-results
+playwright-report
+.playwright
+
+# Docs and media are not needed at runtime and are large.
+docs/media
+
+# Tests and fixtures. The worker image copies the source tree because it runs
+# TypeScript through tsx, so without this it also ships every suite, every
+# fixture, and the Playwright config — none of which a publish queue needs, and
+# all of which is extra surface in an image holding decrypted tokens.
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+vitest.config.ts
+eslint.config.js
+
+# Editor and tooling state.
+.editorconfig
+*.md
+!README.md
+
+*.log
+.DS_Store
+Thumbs.db

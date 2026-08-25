@@ -1,0 +1,60 @@
+node_modules/
+dist/
+.next/
+out/
+*.tsbuildinfo
+
+# Local environment — never commit real credentials.
+# Deny every variant and re-admit only the documented template, so a new
+# .env.production or .env.staging is ignored by default rather than by
+# somebody remembering to add it.
+.env
+.env.*
+!.env.example
+
+# Local embedded database (dev only)
+data/
+
+# Any database file, wherever it lands. data/ already covers the dev instance;
+# this catches a stray dump or an experiment run from another directory.
+*.db
+*.sqlite
+*.sqlite3
+
+# Backups written by `npm run backup`. These are a copy of the live database
+# and of storage/, so they carry real tenant content — the one directory in
+# the tree that must never be committed even by accident.
+backups/
+
+# Generated carousel assets. Public by design at runtime, but not source.
+#
+# Anchored with a leading slash, which is load-bearing. Unanchored, `storage/`
+# matches a directory of that name at ANY depth — including packages/storage,
+# the source of @claimfold/storage. Both apps declare it as a workspace
+# dependency, so a fresh clone was missing a package `npm install` cannot
+# resolve and neither app could build. It also made the package invisible to
+# ripgrep, which honours .gitignore by default.
+/storage/
+!/storage/.gitkeep
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Build-log media is committed on purpose (it is marketing material),
+# but scratch captures are not.
+docs/media/scratch/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor and tooling settings — machine-specific, not project config.
+.idea/
+.vscode/
+.claude/
+
+# Vendor licence signing key. The private half must never be committed.
+.license-signing-key.json

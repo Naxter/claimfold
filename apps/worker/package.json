@@ -1,0 +1,24 @@
+{
+  "name": "@claimfold/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc --build"
+  },
+  "dependencies": {
+    "@claimfold/crypto": "*",
+    "@claimfold/db": "*",
+    "@claimfold/ig": "*",
+    "@claimfold/render": "*",
+    "@claimfold/storage": "*",
+    "@claimfold/trends": "*",
+    "drizzle-orm": "^0.45.2",
+    "tsx": "^4.19.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

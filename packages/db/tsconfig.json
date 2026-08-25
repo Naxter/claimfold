@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "//": "drizzle.config.ts is deliberately excluded: it sits outside rootDir and is consumed by the drizzle-kit CLI, not compiled with the package.",
+  "include": ["src/**/*.ts"]
+}

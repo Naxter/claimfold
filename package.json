@@ -1,0 +1,76 @@
+{
+  "name": "claimfold",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted studio for generating, verifying, reviewing and publishing Instagram carousels.",
+  "license": "BUSL-1.1",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc --build --verbose",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "npm run dev --workspace apps/web",
+    "dev:worker": "npm run dev --workspace apps/worker",
+    "db:generate": "drizzle-kit generate --config packages/db/drizzle.config.ts",
+    "db:migrate": "npm run migrate --workspace packages/db",
+    "db:studio": "drizzle-kit studio --config packages/db/drizzle.config.ts",
+    "db:seed": "tsx scripts/seed-dev.ts",
+    "db:reset": "tsx scripts/db-reset.ts",
+    "render:demo": "tsx packages/render/src/demo.ts",
+    "capture": "tsx scripts/capture.ts",
+    "devlog": "tsx scripts/devlog.ts",
+    "fonts:fetch": "tsx scripts/fetch-fonts.ts",
+    "license:keygen": "tsx scripts/license-keygen.ts",
+    "license:sign": "tsx scripts/license-sign.ts",
+    "pipeline:dry": "tsx scripts/pipeline-dry.ts",
+    "trends:probe": "tsx scripts/trends-probe.ts",
+    "backup": "tsx scripts/backup.ts"
+  },
+  "//overrides": [
+    "Next bundles its own copies of these and its advisory range covers every",
+    "published version, so there is no in-range fix to wait for.",
+    "sharp: four libvips CVEs (GHSA-f88m-g3jw-g9cj). Next only uses sharp for",
+    "next/image, which this app does not use — but an unused vulnerable native",
+    "library still ships in the runtime image, so it gets pinned rather than",
+    "excused.",
+    "postcss: build-time only, and it processes our own stylesheets rather than",
+    "anything an attacker supplies. Pinned because the fix is free, not because",
+    "the path was reachable.",
+    "",
+    "IMPORTANT, and the reason this note is long: these overrides only pin the",
+    "TOP-LEVEL copies. They do not reach next's own nested ones — verified by",
+    "re-resolving the lockfile, which still places sharp 0.34.5 and postcss",
+    "8.4.31 under node_modules/next/node_modules. npm will not apply an",
+    "override to a dependency the parent declares optional, and adding a",
+    "nested `next: {...}` entry does not change that.",
+    "",
+    "So `npm audit` reports high findings that this block cannot fix, and the",
+    "runtime fix is physical: apps/web/Dockerfile deletes both from the image.",
+    "Do not read the pins below as meaning the nested copies are safe. Check",
+    "with: npm ls sharp postcss --all"
+  ],
+  "overrides": {
+    "sharp": "^0.35.3",
+    "postcss": "^8.5.23"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.10.2",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^3.2.4"
+  }
+}

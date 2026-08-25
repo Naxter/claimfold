@@ -1,0 +1,11 @@
+# Normalise line endings. Development happens on Windows, deployment on Linux,
+# and without this every commit rewrites CRLF into LF and reports it as a
+# warning on forty files at a time.
+* text=auto eol=lf
+
+# Binary, so git never tries to normalise or diff them as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.woff2 binary
+*.ico binary

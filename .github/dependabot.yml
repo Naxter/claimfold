@@ -1,0 +1,47 @@
+# Dependency updates.
+#
+# Grouped rather than one PR per package: a self-hosted product's dependency
+# churn is not interesting on its own, and twenty open PRs is how a security
+# update gets lost among nineteen patch bumps.
+
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Everything routine, in one PR.
+      minor-and-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+    ignore:
+      # Majors land by hand. Next, React and Drizzle each need the migration
+      # notes read, and a bot PR that fails CI teaches nothing.
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      - dependency-name: drizzle-orm
+        update-types: [version-update:semver-major]
+      - dependency-name: better-auth
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: docker
+    directory: /apps/web
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: docker
+    directory: /apps/worker
+    schedule:
+      interval: monthly

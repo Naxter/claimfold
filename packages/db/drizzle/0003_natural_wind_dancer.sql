@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "jobs_one_running_per_kind_idx" ON "jobs" USING btree ("org_id","kind") WHERE "jobs"."status" = 'running';

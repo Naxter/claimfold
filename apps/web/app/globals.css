@@ -1,0 +1,580 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+/*
+  Dashboard chrome only. The slide templates carry their own design tokens and
+  are deliberately unaffected by anything here — what a reviewer sees in the
+  preview must be exactly what gets published, so the app's styling must never
+  leak into a slide.
+
+  Every token lives in ./tokens.css. This file only wires those tokens into
+  Tailwind's utility namespace and sets the base layer. If you are changing how
+  the product looks, that is the file to open, not this one.
+*/
+
+/*
+  `@theme inline` rather than `@theme`: inline keeps the reference to the
+  custom property instead of copying its value at build time. That is what
+  makes the theme and density switches work at runtime — flip `data-theme` on
+  <html> and every utility re-resolves. A plain `@theme` would bake the light
+  values into the stylesheet and dark mode would silently do nothing.
+*/
+@theme inline {
+  --color-bg: var(--bg);
+  --color-raised: var(--bg-raised);
+  --color-sunken: var(--bg-sunken);
+  --color-hover: var(--bg-hover);
+  --color-selected: var(--bg-selected);
+
+  --color-fg: var(--fg);
+  --color-muted: var(--fg-muted);
+  --color-subtle: var(--fg-subtle);
+
+  --color-accent: var(--accent);
+  --color-accent-hi: var(--accent-hi);
+  --color-accent-lo: var(--accent-lo);
+  --color-accent-weak: var(--accent-weak);
+  --color-on-accent: var(--fg-on-accent);
+
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+
+  --color-ok: var(--status-ok);
+  --color-warn: var(--status-warn);
+  --color-err: var(--status-err);
+  --color-idle: var(--status-idle);
+  --color-ok-weak: var(--status-ok-weak);
+  --color-warn-weak: var(--status-warn-weak);
+  --color-err-weak: var(--status-err-weak);
+  --color-idle-weak: var(--status-idle-weak);
+
+  --font-ui: var(--font-ui);
+  --font-mono: var(--font-mono);
+
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-md: var(--text-md);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-metric: var(--text-metric);
+
+  --radius-1: var(--radius-1);
+  --radius-2: var(--radius-2);
+}
+
+/*
+  Tailwind's own spacing scale is deliberately left alone.
+
+  Redefining `--spacing-*` would have changed the meaning of every `p-4` and
+  `gap-3` already written across the app at once — silently, with no compile
+  error and no way to review the result short of opening every page. Density
+  is instead expressed through the explicit `--sp-*`, `--row-h` and
+  `--control-h` tokens, which components opt into where density actually
+  matters: rows, controls and panel padding.
+*/
+
+@layer base {
+  html {
+    /* Tabular figures everywhere by default. A dashboard is full of counts,
+       scores and dates in vertical lists, and proportional digits make those
+       columns visibly ragged. Turning it on globally is cheaper than
+       remembering it at forty call sites. */
+    font-variant-numeric: tabular-nums lining-nums;
+    color-scheme: light dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-ui);
+    font-size: var(--text-md);
+    line-height: var(--lh-ui);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Headings are weight-and-space hierarchy, not size hierarchy. In a tool,
+     a 32px heading mostly steals room from the data underneath it. */
+  h1 {
+    font-size: var(--text-xl);
+    line-height: var(--lh-tight);
+    font-weight: 600;
+  }
+  h2 {
+    font-size: var(--text-lg);
+    line-height: var(--lh-tight);
+    font-weight: 600;
+  }
+  h3 {
+    font-size: var(--text-md);
+    font-weight: 600;
+  }
+
+  p,
+  li {
+    text-wrap: pretty;
+  }
+
+  /* One focus treatment for the whole product. Never removed without a
+     replacement: a dashboard is driven by keyboard by anyone fast, and an
+     invisible focus ring makes it unusable rather than merely inaccessible. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-1);
+  }
+  :where(a, button):focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  ::placeholder {
+    color: var(--fg-subtle);
+  }
+}
+
+@layer components {
+  /* ── Controls ──────────────────────────────────────────────────────────
+     Six states each: default, hover, focus-visible, active, disabled,
+     loading. Active compresses — that 2% scale is the whole reason a button
+     feels like a button rather than a coloured rectangle. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-3);
+    height: var(--control-h);
+    padding-inline: var(--sp-5);
+    border: 1px solid transparent;
+    border-radius: var(--radius-1);
+    background: var(--accent);
+    color: var(--fg-on-accent);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-instant) var(--ease-out);
+  }
+  .btn:active:not(:disabled) {
+    background: var(--accent-lo);
+    transform: scale(0.98);
+  }
+  .btn:disabled {
+    background: var(--bg-sunken);
+    color: var(--fg-subtle);
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--fg);
+    border-color: var(--rule-strong);
+  }
+  .btn-ghost:active:not(:disabled) {
+    background: var(--bg-sunken);
+  }
+  .btn-ghost:disabled {
+    background: transparent;
+    border-color: var(--rule);
+  }
+
+  .btn-quiet {
+    background: transparent;
+    color: var(--fg-muted);
+    border-color: transparent;
+    padding-inline: var(--sp-4);
+  }
+  .btn-quiet:active:not(:disabled) {
+    background: var(--bg-hover);
+  }
+  /* Without this, `.btn:disabled` wins and a disabled quiet button paints
+     itself a filled sunken box — visually a primary button, at the exact
+     moment it does nothing. Quiet stays quiet when disabled; only the text
+     goes dim. */
+  .btn-quiet:disabled {
+    background: transparent;
+    border-color: transparent;
+  }
+
+  /* Hover is guarded: on a touch screen it fires on tap and leaves the
+     control stuck in a hovered state until something else is touched. */
+  @media (hover: hover) {
+    .btn:hover:not(:disabled) {
+      background: var(--accent-hi);
+    }
+    .btn-ghost:hover:not(:disabled) {
+      background: var(--bg-hover);
+      border-color: var(--rule-strong);
+    }
+    .btn-quiet:hover:not(:disabled) {
+      background: var(--bg-hover);
+      color: var(--fg);
+    }
+  }
+
+  .field {
+    width: 100%;
+    height: var(--control-h);
+    padding-inline: var(--sp-5);
+    background: var(--bg-raised);
+    color: var(--fg);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius-1);
+    font-size: var(--text-sm);
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+  /* Guarded like the buttons above, and for the same reason: on a touch screen
+     an unguarded :hover fires on tap and leaves the field looking focused long
+     after the finger has gone. */
+  @media (hover: hover) {
+    .field:hover:not(:disabled) {
+      border-color: var(--fg-subtle);
+    }
+  }
+  .field:disabled {
+    background: var(--bg-sunken);
+    color: var(--fg-subtle);
+    cursor: not-allowed;
+  }
+  /* 16px on small screens: anything smaller makes iOS zoom the whole page on
+     focus, which then has to be pinched back out. */
+  @media (max-width: 640px) {
+    .field {
+      font-size: var(--text-lg);
+    }
+  }
+
+  textarea.field {
+    height: auto;
+    padding-block: var(--sp-4);
+    line-height: var(--lh-ui);
+  }
+
+  /* ── Surfaces ──────────────────────────────────────────────────────────
+     A rule, not a shadow. Shadows are for things that genuinely float; a
+     dashboard where every panel casts one reads as a UI-kit demo. */
+  .panel {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-2);
+  }
+
+  /*
+    A segmented control's focus ring has to be drawn on the label.
+
+    The radio driving each segment is visually hidden, and `.visually-hidden`
+    uses `clip-path: inset(50%)` — which clips the element's entire rendering,
+    outline included. So the shared focus rule still matched the input and
+    still painted a ring; it was just painted inside a clipped 1px box and
+    never seen. Tabbing into Theme or Density changed nothing on screen.
+
+    This is the failure mode the shared rule's own comment warns about: an
+    invisible focus ring makes a control unusable rather than merely
+    inaccessible.
+  */
+  .segmented-option:has(:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /*
+    The same fix, for the same bug, on the two pickers that were missed.
+
+    The picture chooser in the slide editor and the theme chooser in the
+    appearance panel both drive their tiles from a `peer sr-only` radio — the
+    identical clipped-element shape documented above — and neither had the
+    matching rule. Tabbing through the picture thumbnails or the theme previews
+    showed nothing at all on screen, which is worse than an unstyled ring: a
+    keyboard user cannot tell which option they are on.
+
+    A shared class rather than a third copy of the rule, so the next tile-shaped
+    picker inherits the fix instead of rediscovering the bug.
+  */
+  .choice-tile:has(:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-1);
+  }
+
+  .label {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: var(--track-caps);
+    color: var(--fg-subtle);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 1px var(--sp-4);
+    border-radius: var(--radius-1);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* ── Table ─────────────────────────────────────────────────────────────
+     Horizontal rules only. A full grid of cell borders adds noise without
+     adding information, and it is the fastest way to make a table tiring. */
+
+  /*
+    The scrollport the sticky header sticks to.
+
+    This wrapper is not optional decoration. `position: sticky` resolves
+    against the nearest scrolling ancestor, and a wrapper with no height cap
+    has a scrollport exactly as tall as its content — so its scroll offset is
+    permanently zero and the header never moves. The table looked correct and
+    the header silently did nothing.
+
+    Deliberately NOT solved by letting the header stick to the viewport
+    instead: the shell's top bar is `sticky top-0` at `--z-shell` (100), and a
+    thead at `--z-sticky-header` (10) would slide underneath it. Capping the
+    wrapper keeps the header inside its own scroll context, where its z-index
+    only has to beat the rows.
+  */
+  .table-wrap {
+    overflow: auto;
+    max-block-size: 70dvh;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky-header);
+    /* Solid, never translucent: rows scrolling under a blurred header is the
+       single most common sticky-header defect. */
+    background: var(--bg-raised);
+    height: var(--row-h);
+    padding-inline: var(--cell-x);
+    border-bottom: 1px solid var(--rule-strong);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: var(--track-caps);
+    color: var(--fg-subtle);
+    text-align: start;
+    white-space: nowrap;
+  }
+  .table tbody td {
+    height: var(--row-h);
+    padding-inline: var(--cell-x);
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--text-sm);
+    vertical-align: middle;
+  }
+  /* Numbers right, text left. Misaligned figures are the defect people feel
+     without being able to name. */
+  .table .num {
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+  .table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  @media (hover: hover) {
+    .table tbody tr:hover td {
+      background: var(--bg-hover);
+    }
+  }
+
+  /* ── Prose ─────────────────────────────────────────────────────────────
+     Explanatory copy is capped at a readable measure. Full-width paragraphs
+     across a 1600px window are unreadable no matter how good the type is. */
+  .prose {
+    max-width: var(--prose);
+    line-height: var(--lh-prose);
+    color: var(--fg-muted);
+  }
+  .prose a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+    transition: text-decoration-thickness var(--dur-fast) var(--ease-out);
+  }
+  @media (hover: hover) {
+    .prose a:hover {
+      text-decoration-thickness: 2px;
+    }
+  }
+
+  /* ── Shell ─────────────────────────────────────────────────────────────
+     Two layouts out of one piece of markup, switched at 768px.
+
+     Above the switch the rail is a grid column and the content sits beside it.
+     Below it the rail leaves the grid entirely and slides over the content as
+     a drawer, because 244px of a 375px screen is two thirds of the viewport
+     spent on navigation. The grid used to be a fixed `244px minmax(0,1fr)` at
+     every width, which left 131px of usable content on a phone and put every
+     page into horizontal scroll — measured at 375px on five routes, overflowing
+     by 68 to 142px.
+
+     768px is measured rather than taken from a device list: at 640px the
+     settings page still overflowed by 18px, and at 768px nothing does. 640px
+     is also roughly where a 1280px window lands at 200% zoom, so the same
+     switch is what makes zooming work. */
+  .shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  }
+
+  /* Positioning lives here rather than as `sticky top-0` in the markup, and
+     that is not tidiness: utilities win over this layer, so a Tailwind
+     `sticky` on the element silently beat the `position: fixed` below and the
+     drawer stayed in the grid — occupying a full-height row of a
+     single-column layout and pushing the whole page down behind it. */
+  .shell-rail {
+    position: sticky;
+    inset-block-start: 0;
+  }
+
+  /* ── Rail, desktop ─────────────────────────────────────────────────────
+     One rule drives the whole collapsed state. The alternative — a Tailwind
+     variant on every label — puts the same condition in eight places and
+     guarantees one of them is missed.
+
+     Scoped to the wide layout on purpose. Collapsing is a "give me back the
+     pixels" affordance for someone who lives in the product on a big screen;
+     a drawer is either open or absent, so the same preference applied to it
+     would hand a phone a 52px panel with every label hidden. */
+  @media (min-width: 48rem) {
+    :root[data-sidebar='collapsed'] .sidebar-label {
+      display: none;
+    }
+    /* The drawer trigger belongs to the narrow layout only. */
+    .nav-trigger {
+      display: none;
+    }
+  }
+
+  /* ── Rail, narrow ──────────────────────────────────────────────────────*/
+  @media (max-width: 47.9375rem) {
+    .shell {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .shell-rail {
+      position: fixed;
+      inset-block: 0;
+      inset-inline-start: 0;
+      /* The natural width, never the collapsed one — see `--sidebar-w-expanded`. */
+      inline-size: var(--sidebar-w-expanded);
+      z-index: var(--z-modal);
+      transform: translateX(-100%);
+      /*
+        Not merely moved off-screen. `visibility: hidden` is what takes the
+        links out of the tab order; a transformed-away nav is still focusable,
+        and tabbing into one sends focus somewhere invisible — worse than
+        having no drawer at all.
+
+        The delayed `visibility` transition is what lets the panel finish
+        sliding out before it disappears. Reversed on open so it becomes
+        visible immediately and slides in.
+      */
+      visibility: hidden;
+      transition:
+        transform var(--dur-base) var(--ease-out),
+        visibility 0s linear var(--dur-base);
+    }
+    :root[data-nav='open'] .shell-rail {
+      transform: none;
+      visibility: visible;
+      transition: transform var(--dur-base) var(--ease-out);
+    }
+
+    /* The desktop collapse control has nothing to do here. */
+    .rail-collapse {
+      display: none;
+    }
+
+    /* The page behind must not scroll under an open drawer. */
+    :root[data-nav='open'] body {
+      overflow: hidden;
+    }
+  }
+
+  /* Dismiss target. A real button rather than a div, so it is announced and
+     can be reached — the drawer is also closable with Escape, but a pointer
+     user's first instinct is to tap beside it. */
+  .nav-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-overlay);
+    background: oklch(0% 0 0 / 0.4);
+    border: 0;
+    cursor: pointer;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: var(--sp-5);
+    top: -200%;
+    z-index: var(--z-toast);
+    padding: var(--sp-4) var(--sp-6);
+    background: var(--accent);
+    color: var(--fg-on-accent);
+    border-radius: var(--radius-1);
+    font-size: var(--text-sm);
+  }
+  .skip-link:focus {
+    top: var(--sp-4);
+  }
+
+  /* ── Skeletons ─────────────────────────────────────────────────────────
+     A placeholder block for `loading.tsx`. Deliberately a shape rather than a
+     spinner: a spinner says "something is happening", a skeleton says "a table
+     is about to appear here, this wide", and the second one stops the layout
+     jumping when the real content arrives.
+
+     Static, with no pulse. This started out animating its opacity on a 1.4s
+     loop and that was wrong twice over: product mode's motion budget is state
+     feedback and layout change, with page-load choreography explicitly out,
+     and an infinite animation that starts on every navigation is exactly that.
+     `role="status"` on the container is what says "loading" — it does not need
+     to be said again in movement. */
+  .skeleton {
+    background: var(--bg-sunken);
+    border-radius: var(--radius-1);
+  }
+}
+
+@layer utilities {
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Slide previews are rendered at full 1080x1350 and scaled down with a
+   transform, so the preview is pixel-identical to the publish output rather
+   than a re-layout at a smaller size. */
+.slide-scale {
+  transform-origin: top left;
+  flex: none;
+}
+
+/* Reduced motion removes the animation, never the layout. Verified by
+   checking that nothing here animates a property something else depends on. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

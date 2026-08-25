@@ -1,0 +1,1 @@
+ALTER TABLE "posts" ADD COLUMN "publish_attempts" integer DEFAULT 0 NOT NULL;

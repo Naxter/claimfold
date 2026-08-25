@@ -1,0 +1,235 @@
+# The check that has to stay green.
+#
+# The isolation suite is the reason this file exists. It writes deliberately
+# incorrect, unscoped queries and asserts that Postgres refuses them — a
+# cross-tenant leak is the one bug that ends a product sold to people whose
+# accounts must never see each other, so the result of that suite should be
+# visible to anyone evaluating the code, not just to whoever ran it locally.
+#
+# Actions are pinned to commit SHAs, not tags. A tag is a moving pointer the
+# action's owner controls, so `@v4` means "whatever that account publishes
+# next" — and this workflow can read the repository and, on a release, write
+# packages. Dependabot updates the SHAs and puts the version in the comment.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck, lint, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      # Chromium is only needed by the render suite, which uses fixtures rather
+      # than a live browser. Skipping the download saves ~2 minutes per run.
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      # No font fetch here. All six faces ARE committed — the step that used to
+      # run took a hard dependency on Google Fonts being reachable, for an
+      # artefact already in the tree, and the comment justifying it claimed the
+      # opposite of the truth.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # The database tests boot PGlite — an embedded Postgres compiled to WASM —
+      # so there is no service container to wait on.
+      - name: Test
+        run: npm test
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Gitleaks needs history to scan commits, not just the tree. A secret
+          # committed and then removed is still a secret that was published.
+          fetch-depth: 0
+
+      - name: Scan history for committed secrets
+        uses: gitleaks/gitleaks-action@83373cf2f8c4db6e24b41c1a9b086bb9619e9cd3 # v2.3.7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      # Advisory, not blocking, and deliberately so: the current high findings
+      # are next's own nested sharp and postcss, which npm `overrides` cannot
+      # reach (see the note in package.json) and which the web image deletes.
+      # Failing the build on something no commit here can fix teaches people to
+      # ignore a red run.
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev
+        continue-on-error: true
+
+      # Blocking, unlike the above: a critical finding in something we actually
+      # ship is worth stopping for.
+      - name: Fail on critical findings
+        run: npm audit --omit=dev --audit-level=critical
+
+  images:
+    name: Build images
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Only after the cheap checks pass: a 25-minute image build that fails for
+    # a type error wastes the runner and the feedback loop.
+    needs: check
+
+    permissions:
+      contents: read
+      # Needed only on a tag, to push the release image. Declared at job scope
+      # because a workflow-scope grant would apply to every job here.
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [web, worker]
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - name: Build ${{ matrix.app }}
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: false
+          load: true
+          tags: claimfold-${{ matrix.app }}:ci
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+      # Building an image proves it compiles, not that it runs. The worker's
+      # Chromium was installed into a directory the runtime user could not read
+      # for exactly as long as CI built this image and never started it — every
+      # render failed on a missing executable and the pipeline stayed green.
+      - name: Smoke test ${{ matrix.app }}
+        run: |
+          if [ "${{ matrix.app }}" = "worker" ]; then
+            docker run --rm --entrypoint node claimfold-worker:ci \
+              -e "const{chromium}=require('playwright');const p=chromium.executablePath();require('fs').accessSync(p);console.log('chromium ok:',p)"
+          else
+            docker run --rm --entrypoint node claimfold-web:ci \
+              -e "require('fs').accessSync('apps/web/server.js');console.log('server entrypoint ok')"
+          fi
+
+      # Scans the image that was just built, not the source tree. A dependency
+      # audit cannot see a vulnerable OS package in the base layer, and the
+      # worker image carries a whole Chromium.
+      - name: Scan ${{ matrix.app }} image
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # v0.29.0
+        with:
+          image-ref: claimfold-${{ matrix.app }}:ci
+          format: table
+          # Report everything, fail on nothing — for now. Both images inherit a
+          # Debian base whose CVE list is not ours to fix on a schedule, and a
+          # gate we cannot pass is a gate people learn to route around.
+          # Tighten to `exit-code: 1` with `severity: CRITICAL` once the base
+          # image is on a pinned digest and updated deliberately.
+          exit-code: '0'
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
+  release:
+    name: Publish images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Tags only. Every other trigger builds and throws away.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [check, images]
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [web, worker]
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - name: Sign in to the registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags
+        id: meta
+        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5.6.1
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.app }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      # The point of this job. Without it every self-hoster builds from source,
+      # which for the worker means downloading Chromium — most of the fifteen
+      # minutes the README's install is supposed to take.
+      - name: Build and push ${{ matrix.app }}
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: true
+          # arm64 as well as amd64: the README recommends a cheap VPS, and the
+          # cheap ones are increasingly ARM. Playwright ships matched Chromium
+          # builds for both.
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.app }}

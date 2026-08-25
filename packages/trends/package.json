@@ -1,0 +1,16 @@
+{
+  "name": "@claimfold/trends",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sources": "./src/sources.ts"
+  },
+  "scripts": {
+    "build": "tsc --build"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

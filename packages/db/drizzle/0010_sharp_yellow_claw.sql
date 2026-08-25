@@ -1,0 +1,1 @@
+CREATE INDEX "slides_image_asset_idx" ON "slides" USING btree (("content" ->> 'imageAssetId'));

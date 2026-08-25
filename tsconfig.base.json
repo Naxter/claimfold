@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    /*
+      `composite` is deliberately NOT set.
+
+      It was, and every package inherited it — while no tsconfig in the repo
+      declares `references`. So it bought nothing: `tsc --build` still compiled
+      one program covering packages, apps and scripts rather than walking a
+      dependency graph, and it cost something, because `next build` printed
+      "TypeScript project references are not fully supported" on every run and
+      fell back to incremental mode.
+
+      The single-program check at the root is the right shape for this repo:
+      packages ship raw source rather than build output (every `exports` map
+      points at `src/*.ts`, every package sets `noEmit`), so there are no
+      project outputs for references to coordinate. Turn this back on only
+      alongside real `references` entries and emitted declarations.
+    */
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "jsx": "react-jsx"
+  },
+  "exclude": ["node_modules", "dist", ".next"]
+}

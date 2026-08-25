@@ -1,0 +1,2 @@
+ALTER TABLE "niches" ADD COLUMN "ig_account_id" uuid;--> statement-breakpoint
+ALTER TABLE "niches" ADD CONSTRAINT "niches_ig_account_id_ig_accounts_id_fk" FOREIGN KEY ("ig_account_id") REFERENCES "public"."ig_accounts"("id") ON DELETE set null ON UPDATE no action;

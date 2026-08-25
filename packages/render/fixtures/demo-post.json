@@ -1,0 +1,93 @@
+{
+  "_comment": "Demo fixture for `npm run render:demo`. Deliberately German and deliberately long — compound nouns are the worst case for auto-fit, so if this lays out cleanly, English will too. Format: misconception (hook, pair x4, takeaway, sources, cta).",
+  "themeId": "paper",
+  "templateId": "split",
+  "watermark": "@wissen.und.irrtuemer",
+  "slides": [
+    {
+      "role": "hook",
+      "content": {
+        "kicker": "Mittelalter",
+        "headline": "Vier Dinge über das Mittelalter, die fast alle falsch erzählen",
+        "body": "Drei davon stammen nicht aus dem Mittelalter selbst – sondern aus dem 19. Jahrhundert."
+      }
+    },
+    {
+      "role": "pair",
+      "content": {
+        "kicker": "Irrtum 01",
+        "headline": "Man hielt die Erde für eine Scheibe",
+        "items": [
+          "Die Vorstellung: Vor Kolumbus glaubten die Menschen, ein Schiff könne über den Rand der Welt fahren.",
+          "Tatsächlich: Die Kugelgestalt der Erde war seit der Antike bekannt und im Mittelalter Lehrmeinung an den Universitäten. Gestritten wurde über den Umfang, nicht über die Form."
+        ],
+        "footnote": "Der Mythos wurde 1828 von Washington Irving in einer Kolumbus-Biografie populär gemacht."
+      }
+    },
+    {
+      "role": "pair",
+      "content": {
+        "kicker": "Irrtum 02",
+        "headline": "Im Mittelalter wurde nicht gebadet",
+        "items": [
+          "Die Vorstellung: Eine Epoche ohne Körperpflege, in der niemand sich wusch.",
+          "Tatsächlich: Öffentliche Badehäuser gehörten zum Stadtbild. Erst ab dem 16. Jahrhundert schlossen viele – aus Angst vor Seuchen und aus Brennholzmangel."
+        ],
+        "footnote": "Größere Städte betrieben teils über ein Dutzend Badestuben."
+      }
+    },
+    {
+      "role": "pair",
+      "content": {
+        "kicker": "Irrtum 03",
+        "headline": "Die Menschen wurden nur dreißig Jahre alt",
+        "items": [
+          "Die Vorstellung: Wer vierzig wurde, galt als Greis.",
+          "Tatsächlich: Die niedrige Lebenserwartung ist ein statistischer Effekt der hohen Kindersterblichkeit. Wer das zwanzigste Lebensjahr erreichte, hatte gute Aussichten auf sechzig und mehr."
+        ],
+        "footnote": "Durchschnitt ist nicht dasselbe wie typisch – hier trennen die beiden sich weit."
+      }
+    },
+    {
+      "role": "pair",
+      "content": {
+        "kicker": "Irrtum 04",
+        "headline": "Ritter mussten mit einem Kran aufs Pferd gehoben werden",
+        "items": [
+          "Die Vorstellung: Rüstungen waren so schwer, dass ein gestürzter Ritter hilflos liegen blieb.",
+          "Tatsächlich: Eine Feldrüstung wog etwa zwanzig bis dreißig Kilogramm, verteilt über den ganzen Körper. Rekonstruktionen zeigen Rennen, Springen und Aufstehen ohne fremde Hilfe."
+        ],
+        "footnote": "Ein heutiger Infanterist trägt oft mehr Gewicht – nur schlechter verteilt."
+      }
+    },
+    {
+      "role": "takeaway",
+      "content": {
+        "kicker": "Das Muster",
+        "headline": "Die meisten Mittelalter-Mythen sind jünger als die Dampfmaschine",
+        "body": "Sie entstanden, als das 19. Jahrhundert eine dunkle Vorzeit brauchte, von der es sich abheben konnte. Wer „finsteres Mittelalter“ sagt, zitiert meist die Romantik – nicht die Quellen."
+      }
+    },
+    {
+      "role": "sources",
+      "content": {
+        "kicker": "Quellen",
+        "headline": "Woher das kommt",
+        "items": [
+          "Jeffrey Burton Russell – Inventing the Flat Earth (1991)",
+          "Kathryn Reyerson – Medieval Urban Bathing Culture",
+          "Cambridge Population History – Mortality and life expectancy",
+          "Royal Armouries Leeds – Studien zur Beweglichkeit in Plattenrüstung"
+        ],
+        "footnote": "Jede Aussage wurde gegen mindestens zwei unabhängige Quellen geprüft."
+      }
+    },
+    {
+      "role": "cta",
+      "content": {
+        "headline": "Welchen davon hast du selbst geglaubt?",
+        "body": "Speichern, falls dir jemand das nächste Mal vom finsteren Mittelalter erzählt."
+      }
+    }
+  ]
+}
