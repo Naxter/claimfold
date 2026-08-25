@@ -16,7 +16,7 @@
     "@claimfold/storage": "*",
     "@claimfold/trends": "*",
     "drizzle-orm": "^0.45.2",
-    "tsx": "^4.19.2"
+    "tsx": "^4.23.12"
   },
   "devDependencies": {
     "typescript": "^5.7.2"
