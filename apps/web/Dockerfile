@@ -5,7 +5,7 @@
 # No Chromium here — the web app only renders React previews in the browser.
 # Rasterising happens in the worker, which keeps this image about 1GB smaller.
 
-FROM node:22-bookworm-slim AS base
+FROM node:25-bookworm-slim AS base
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 
