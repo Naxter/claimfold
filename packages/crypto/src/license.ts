@@ -134,7 +134,7 @@ export function verifyLicense(key: string, now = new Date()): LicenseStatus {
 
   const [payloadPart, signaturePart] = parts as [string, string]
 
-  let ok = false
+  let ok: boolean
   try {
     const publicKey = createPublicKey({
       key: Buffer.concat([

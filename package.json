@@ -63,10 +63,10 @@
     "postcss": "^8.5.23"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.10.2",
     "drizzle-kit": "^0.31.10",
-    "eslint": "^9.39.5",
+    "eslint": "^10.9.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "tsx": "^4.23.12",
     "typescript": "^5.7.2",
