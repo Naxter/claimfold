@@ -30,6 +30,16 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: better-auth
         update-types: [version-update:semver-major]
+      # TypeScript 7 is the native port, and typescript-eslint refuses to load
+      # against it: "typescript-eslint does not support TS 7.0". The lint gate
+      # is the whole reason that package is here, so the compiler cannot move
+      # ahead of it. Everything else was fine on 7.0 when tried in August 2026:
+      # tsc passed once a `declare module '*.css'` shim was added for the
+      # stricter side-effect-import rule, and next build passed untouched.
+      # Revisit when typescript-eslint ships >=7.1 support:
+      # https://github.com/typescript-eslint/typescript-eslint/issues/10940
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
       # @types/node tracks the runtime, not the newest release. Both images run
       # node:22 and engines says >=22, so types from a later major would let
       # tsc accept APIs that are not there at runtime. CI would stay green
