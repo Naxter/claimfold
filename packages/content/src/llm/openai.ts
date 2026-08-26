@@ -1,4 +1,8 @@
 import OpenAI from 'openai'
+import type {
+  ResponseCreateParamsNonStreaming,
+  WebSearchTool,
+} from 'openai/resources/responses/responses'
 import type { z } from 'zod'
 
 import { toJsonSchema } from './schema-json.ts'
@@ -151,7 +155,16 @@ export class OpenAiProvider implements LlmProvider {
     const model = this.modelFor(options.tier)
     const isReasoning = REASONING_MODEL.test(model)
 
-    const request: Record<string, unknown> = {
+    /*
+      Typed against the SDK rather than assembled as a bag of unknowns.
+    
+      This was a Record<string, unknown> handed over as `never`, with the
+      reply cast straight to a local interface. That compiled whatever the
+      SDK happened to say, so a major version could change either shape
+      and nothing here would notice until a real generation failed. With
+      both casts gone, tsc checks this call against the version installed.
+    */
+    const request: ResponseCreateParamsNonStreaming = {
       model,
       // `instructions` is the authority channel — the equivalent of a system
       // prompt. Retrieved page content never reaches it.
@@ -169,20 +182,18 @@ export class OpenAiProvider implements LlmProvider {
     }
 
     if (withSearch) {
-      const tool: Record<string, unknown> = { type: 'web_search' }
+      const tool: WebSearchTool = { type: 'web_search' }
       if (options.allowedDomains?.length) {
-        tool['filters'] = { allowed_domains: options.allowedDomains }
+        tool.filters = { allowed_domains: options.allowedDomains }
       }
-      request['tools'] = [tool]
+      request.tools = [tool]
     }
 
     if (isReasoning) {
-      request['reasoning'] = { effort }
+      request.reasoning = { effort }
     }
 
-    const response = (await this.client.responses.create(
-      request as never,
-    )) as unknown as OpenAiResponse
+    const response = await this.client.responses.create(request)
 
     const refusal = findRefusal(response)
     if (refusal) {
@@ -228,43 +239,28 @@ export class OpenAiProvider implements LlmProvider {
 
 /* ─── Response shapes ────────────────────────────────────────────────────── */
 
-interface OpenAiAnnotation {
-  type: string
-  url?: string
-  title?: string
-}
+/**
+ * The reply, as the installed SDK defines it.
+ *
+ * This was a hand-written interface that the response got cast to, and it
+ * had drifted in a way that says everything about why casting here is a bad
+ * idea: it declared incomplete_details optional where the SDK returns it
+ * nullable, so every reader was checking for the wrong absent value.
+ * Nothing ever failed, because the cast meant nothing was ever compared.
+ */
+type OpenAiResponse = OpenAI.Responses.Response
 
-interface OpenAiContent {
-  type: string
-  text?: string
-  refusal?: string
-  annotations?: OpenAiAnnotation[]
-}
-
-interface OpenAiSearchAction {
-  type: string
-  url?: string
-  query?: string
-  queries?: string[]
-}
-
-interface OpenAiOutputItem {
-  type: string
-  content?: OpenAiContent[]
-  /** Present on `web_search_call` items; records what the tool actually did. */
-  action?: OpenAiSearchAction
-}
-
-interface OpenAiResponse {
-  status?: string
-  incomplete_details?: { reason?: string }
-  output_text?: string
-  output?: OpenAiOutputItem[]
-  usage?: {
-    input_tokens?: number
-    output_tokens?: number
-    input_tokens_details?: { cached_tokens?: number }
-  }
+/**
+ * The content parts of one output item, if it has any.
+ *
+ * `output` is a union: a message carries content, a web-search call or a file
+ * search call does not. The old code reached for `.content` on every item and
+ * relied on `?? []` to paper over the ones without it, which worked but only
+ * because nothing was checking. Narrowing here says which items are being
+ * read and lets the compiler confirm the rest are skipped on purpose.
+ */
+function contentOf(item: OpenAiResponse['output'][number]) {
+  return 'content' in item && Array.isArray(item.content) ? item.content : []
 }
 
 function extractText(response: OpenAiResponse): string {
@@ -276,7 +272,7 @@ function extractText(response: OpenAiResponse): string {
 
   const parts: string[] = []
   for (const item of response.output ?? []) {
-    for (const content of item.content ?? []) {
+    for (const content of contentOf(item)) {
       if (content.type === 'output_text' && content.text) parts.push(content.text)
     }
   }
@@ -285,7 +281,7 @@ function extractText(response: OpenAiResponse): string {
 
 function findRefusal(response: OpenAiResponse): string | undefined {
   for (const item of response.output ?? []) {
-    for (const content of item.content ?? []) {
+    for (const content of contentOf(item)) {
       if (content.type === 'refusal' && content.refusal) return content.refusal
     }
   }
@@ -325,13 +321,16 @@ function collectCitations(response: OpenAiResponse): ResearchSource[] {
     if (item.type === 'web_search_call' && item.action) {
       const action = item.action
       if (action.type === 'open_page' || action.type === 'find_in_page') {
-        add(action.url)
+        add(action.url ?? undefined)
       }
     }
 
-    for (const content of item.content ?? []) {
+    for (const content of contentOf(item)) {
+      // Citations hang off text parts. A refusal part carries none, which the
+      // union says and the old cast did not.
+      if (content.type !== 'output_text') continue
       for (const annotation of content.annotations ?? []) {
-        if (annotation.type === 'url_citation') add(annotation.url, annotation.title)
+        if (annotation.type === 'url_citation') add(annotation.url, annotation.title ?? undefined)
       }
     }
   }
