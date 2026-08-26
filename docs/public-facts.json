@@ -1,0 +1,12 @@
+{
+  "maxCaptionCharacters": 2200,
+  "maxHashtags": 30,
+  "slidesMin": 2,
+  "slidesMax": 10,
+  "confidenceFloorMinimum": 0.5,
+  "fontsCommitted": 6,
+  "fontsBytes": 312716,
+  "fontsKilobytesRounded": 305,
+  "nodeMinimumMajor": 22,
+  "licence": "BUSL-1.1"
+}
