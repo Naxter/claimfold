@@ -64,6 +64,14 @@ function main(): void {
 
   mkdirSync(destination, { recursive: true })
 
+  /*
+    Which shape this backup is, and so which restore instructions belong in
+    its README. They used to be the Postgres ones unconditionally, so every
+    development backup shipped with a pg_restore command that cannot read
+    it and no mention of the one that can.
+  */
+  const isPglite = databaseUrl.startsWith('pglite://')
+
   // ── Database ──────────────────────────────────────────────────────────────
   if (databaseUrl.startsWith('pglite://')) {
     /*
@@ -112,14 +120,32 @@ function main(): void {
       `Claimfold backup — ${stamp}`,
       '',
       'Contents:',
-      '  database.dump | pglite/   the database',
+      isPglite ? '  pglite/                   the database' : '  database.dump             the database',
       '  storage/                  rendered slides and uploaded pictures',
       '',
       'NOT included: ENCRYPTION_KEY and AUTH_SECRET.',
       'Without ENCRYPTION_KEY the stored Instagram tokens cannot be decrypted and',
       'every account must reconnect. Everything else restores.',
       '',
-      'Restore (Docker install):',
+      ...(isPglite
+        ? [
+            'Restore (development, embedded database):',
+            '  1. Stop the dev server. PGlite is single-connection, and a second',
+            '     process on the same directory is how it gets corrupted.',
+            '  2. Move the current data directory aside rather than deleting it:',
+            '       mv data/dev data/dev.before-restore',
+            '  3. Put this backup in its place:',
+            '       cp -r pglite data/dev',
+            '  4. Start the dev server. If it comes up and the board loads, the',
+            '     restore worked and data/dev.before-restore can go.',
+            '',
+            'There is no database.dump here: pg_dump does not run against',
+            'PGlite, so the directory itself is the backup and the pg_restore',
+            'route below applies only to a Postgres install.',
+            '',
+          ]
+        : []),
+      'Restore (Docker install, real Postgres):',
       '  docker compose up -d postgres',
       '  cat database.dump | docker compose exec -T postgres pg_restore -U claimfold -d claimfold --clean --if-exists',
       '  docker compose run --rm -v "$PWD/storage:/restore" web cp -a /restore/. /app/storage/',
