@@ -10,7 +10,7 @@
     "build": "tsc --build"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.120.0",
+    "@anthropic-ai/sdk": "^0.122.0",
     "@claimfold/db": "*",
     "@claimfold/niches": "*",
     "openai": "^6.49.0",
