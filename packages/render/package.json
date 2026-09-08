@@ -14,13 +14,13 @@
   "dependencies": {
     "@claimfold/db": "*",
     "@claimfold/templates": "*",
-    "playwright": "^1.62.1",
+    "playwright": "^1.63.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sharp": "^0.35.4"
   },
   "devDependencies": {
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.2"
   }
 }
