@@ -106,7 +106,7 @@ async function hideDevChrome(page: Page): Promise<void> {
 async function settle(page: Page): Promise<void> {
   const height = await page.evaluate(() => document.body.scrollHeight)
   for (let y = 0; y < height; y += 600) {
-    await page.evaluate((to) => window.scrollTo(0, to), y)
+    await page.evaluate((to: number) => window.scrollTo(0, to), y)
     await page.waitForTimeout(200)
   }
   await page.evaluate(() => window.scrollTo(0, 0))

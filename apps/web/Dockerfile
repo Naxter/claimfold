@@ -27,7 +27,11 @@ COPY packages/trends/package.json packages/trends/
 
 # Skip Chromium: the web image never rasterises.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-RUN npm ci
+# `mkdir -p` because whether anything is nested under apps/web/node_modules
+# depends on the current lockfile. When every dependency hoists to the root,
+# npm never creates the directory, and the COPY in the build stage fails with
+# "not found" instead of copying an empty folder.
+RUN npm ci && mkdir -p apps/web/node_modules
 
 # ── Build ────────────────────────────────────────────────────────────────────
 FROM base AS build

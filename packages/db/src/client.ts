@@ -124,8 +124,27 @@ function createDatabase() {
  */
 const globalCache = globalThis as { __claimfoldDb?: Database }
 
+/**
+ * Drizzle's `_` holds schema and relation metadata only: no connection behind it.
+ *
+ * better-auth's Drizzle adapter reads `db._.schema` while the auth route module
+ * is being imported (since 1.7.2), to build its relations map. `next build`
+ * imports that route with no DATABASE_URL, so answering `_` through the normal
+ * path would throw the very error the lazy Proxy exists to avoid. When no
+ * database is configured, a connection-less mock over the same schema answers
+ * instead. With a DATABASE_URL set, `_` comes from the real instance as before.
+ */
+let metadataOnly: Database | undefined
+function metadataWithoutConnection(): unknown {
+  metadataOnly ??= drizzlePostgres.mock({ schema }) as unknown as Database
+  return metadataOnly._
+}
+
 export const db: Database = new Proxy({} as Database, {
   get(_target, property): unknown {
+    if (property === '_' && !globalCache.__claimfoldDb && !process.env.DATABASE_URL) {
+      return metadataWithoutConnection()
+    }
     const real = (globalCache.__claimfoldDb ??= createDatabase())
     const value: unknown = Reflect.get(real, property, real)
     if (typeof value !== 'function') return value
