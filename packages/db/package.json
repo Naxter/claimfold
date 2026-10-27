@@ -14,8 +14,8 @@
     "build": "tsc --build"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.8",
-    "drizzle-orm": "^0.45.3",
+    "@electric-sql/pglite": "^0.5.11",
+    "drizzle-orm": "^0.45.4",
     "postgres": "^3.4.5"
   },
   "devDependencies": {

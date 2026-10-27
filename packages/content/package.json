@@ -13,7 +13,7 @@
     "@anthropic-ai/sdk": "^0.128.0",
     "@claimfold/db": "*",
     "@claimfold/niches": "*",
-    "openai": "^7.23.0",
+    "openai": "^7.43.0",
     "zod": "^3.24.1",
     "zod-to-json-schema": "^3.24.1"
   },
